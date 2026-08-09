@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import nodemailer from 'nodemailer'
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const globalForPrisma = global as unknown as { prisma: PrismaClient; otpStore: Record<string, { otp: string; expires: number }> }
 
 const prisma = globalForPrisma.prisma || new PrismaClient({
