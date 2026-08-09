@@ -511,6 +511,7 @@ const receiptHtml = `
           },
         })
       } catch (dbError: any) {
+        console.error("CRITICAL DB ERROR:", dbError); // આ લાઇન ઉમેરો
         newContactSub = {
           id: 'SUB_' + Date.now(),
           customerName: contactName,
