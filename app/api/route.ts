@@ -28,56 +28,36 @@ export async function GET(request: Request) {
     const todayStr = new Date().toISOString().split('T')[0]
     const currentMonthPrefix = todayStr.substring(0, 7)
 
-    // 🛑 To fetch billing data
     if (type === 'billing') {
-      let billingList: any[] = []
-      try {
-        billingList = await prisma.billing.findMany({
-          orderBy: { createdAt: 'desc' },
-        })
-      } catch (e) {
-        billingList = []
-      }
+      const billingList = await prisma.billing.findMany({
+        orderBy: { createdAt: 'desc' },
+      }).catch(() => [])
       return NextResponse.json({ success: true, data: billingList }, { status: 200 })
     }
 
-    if (type === 'visitor') {
-      let visitorLog = null
-      try {
-        visitorLog = await prisma.visitorLog.findFirst({
-          where: { date: todayStr }
-        })
-      } catch (e) {}
+ if (type === 'visitor') {
+      let visitorLog = await prisma.visitorLog.findFirst({
+        where: { date: todayStr }
+      }).catch(() => null)
 
       if (!visitorLog) {
-        try {
-          visitorLog = await prisma.visitorLog.create({
-            data: { count: 1, date: todayStr }
-          })
-        } catch (e) {
-          visitorLog = { count: 1 }
-        }
+        visitorLog = await prisma.visitorLog.create({
+          data: { count: 1, date: todayStr }
+        }).catch(() => ({ count: 1 })) as any
       } else {
-        try {
-          visitorLog = await prisma.visitorLog.update({
-            where: { id: visitorLog.id },
-            data: { count: visitorLog.count + 1 }
-          })
-        } catch (e) {
-          visitorLog = { count: visitorLog.count + 1 }
-        }
+        visitorLog = await prisma.visitorLog.update({
+          where: { id: visitorLog.id },
+          data: { count: visitorLog.count + 1 }
+        }).catch(() => ({ count: (visitorLog?.count || 0) + 1 })) as any
       }
 
-      return NextResponse.json({ success: true, count: visitorLog.count }, { status: 200 })
+      return NextResponse.json({ success: true, count: visitorLog?.count || 1 }, { status: 200 })
     }
 
     if (type === 'projects') {
-      let projects: any[] = []
-      try {
-        projects = await prisma.project.findMany({
-          orderBy: { createdAt: 'desc' },
-        })
-      } catch (dbErr) {}
+      let projects = await prisma.project.findMany({
+        orderBy: { createdAt: 'desc' },
+      }).catch(() => [])
 
       const finalProjects = projects.length > 0 ? projects : [
         {
@@ -100,14 +80,9 @@ export async function GET(request: Request) {
     }
 
     if (type === 'proposals' || type === 'proposal') {
-      let proposals: any[] = []
-      try {
-        proposals = await prisma.proposal.findMany({
-          orderBy: { createdAt: 'desc' },
-        })
-      } catch (e) {
-        proposals = []
-      }
+      let proposals = await prisma.proposal.findMany({
+        orderBy: { createdAt: 'desc' },
+      }).catch(() => [])
 
       return NextResponse.json({ success: true, data: proposals, proposals }, { status: 200 })
     }
@@ -134,12 +109,9 @@ export async function GET(request: Request) {
       .filter((log: any) => log.date && log.date.startsWith(currentMonthPrefix))
       .reduce((sum: number, log: any) => sum + (log.count || 0), 0)
 
-    let projects: any[] = []
-    try {
-      projects = await prisma.project.findMany({
-        orderBy: { createdAt: 'desc' },
-      })
-    } catch (dbErr) {}
+    let projects = await prisma.project.findMany({
+      orderBy: { createdAt: 'desc' },
+    }).catch(() => [])
 
     const finalProjects = projects.length > 0 ? projects : [
       {
@@ -189,7 +161,6 @@ export async function POST(request: Request) {
       itemsList, paid, remaining, total, address 
     } = body
 
-    // 🛑 1. To send OTP
     if (type === 'send-otp') {
       if (!email) {
         return NextResponse.json({ success: false, message: 'Email is required!' }, { status: 200 })
@@ -209,7 +180,7 @@ export async function POST(request: Request) {
           },
         });
 
-        const mailOptions = {
+        await transporter.sendMail({
           from: process.env.EMAIL_USER,
           to: email,
           subject: 'Your OTP Code for Verification',
@@ -222,9 +193,7 @@ export async function POST(request: Request) {
               <p>Please do not share this code with anyone. It is valid for 10 minutes.</p>
             </div>
           `
-        };
-
-        await transporter.sendMail(mailOptions);
+        });
 
         return NextResponse.json({ success: true, message: 'OTP sent successfully to your email!' }, { status: 200 })
       } catch (mailError: any) {
@@ -232,7 +201,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // 🛑 2. To verify OTP
     if (type === 'verify-otp') {
       if (!email || !otp) {
         return NextResponse.json({ success: false, message: 'Email and OTP are required!' }, { status: 200 })
@@ -247,29 +215,61 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, message: 'Invalid OTP!' }, { status: 200 })
       }
 
-     try {
-  await prisma.billing.upsert({
-    where: { email: String(email) } as any, // <--- Added 'as any' here
-    update: {}, 
-    create: {
-      email: String(email),
-      itemsList: 'OTP Verified - Selecting Package',
-      total: 0,
-      paid: 0,
-      remaining: 0,
-      status: 'Pending',
-    },
-  });
-} catch (err) {
-  console.error(err);
-}
+      try {
+        await prisma.billing.upsert({
+          where: { email: String(email) } as any,
+          update: {}, 
+          create: {
+            customerName: String(name || fullName || email.split('@')[0]),
+            email: String(email),
+            itemsList: 'OTP Verified - Selecting Package',
+            total: 0,
+            paid: 0,
+            remaining: 0,
+            status: 'Pending',
+          },
+        });
+      } catch (err) {}
 
       delete otpStore[email]
       return NextResponse.json({ success: true, message: 'Email verified successfully!' }, { status: 200 })
     }
 
-// 🛑 2.5 To save Cost Estimator / Billing data (Fixed code)
-   // 🛑 2.5 To save Cost Estimator / Billing data (Fixed code)
+    const isContactForm = type === 'contact' || message || projectDetails || description || subject || fullName || name || workEmail;
+    if (isContactForm && !investment && !range && !itemsList) {
+      const contactName = fullName || name || customerName || userName || 'Website Visitor'
+      const contactEmail = email || workEmail || userEmail || 'no-email@domain.com'
+      const contactMessage = message || projectDetails || description || subject || 'General Inquiry'
+
+      let newContactSub = null
+      try {
+        newContactSub = await prisma.subscription.create({
+          data: {
+            customerName: String(contactName),
+            email: String(contactEmail),
+            productName: `Inquiry: ${String(contactMessage)}`,
+            plan: plan || 'Contact Form',
+            amount: '0',
+            paymentId: paymentId || ('CONTACT_' + Date.now()),
+            durationDays: 0,
+            status: 'Active',
+          },
+        })
+      } catch (dbError: any) {
+        newContactSub = {
+          id: 'SUB_' + Date.now(),
+          customerName: contactName,
+          email: contactEmail,
+        }
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        data: newContactSub, 
+        message: 'Inquiry saved to admin panel successfully!' 
+      }, { status: 200 })
+    }
+
     const finalClientEmail = email || userEmail || workEmail || body.customerEmail;
     if ((type === 'billing' || (finalClientEmail && (itemsList || total !== undefined || amount !== undefined))) && plan !== 'Website Inquiry') {
       const clientEmail = finalClientEmail;
@@ -293,7 +293,6 @@ export async function POST(request: Request) {
           },
         });
       } catch (dbError: any) {
-        console.error("Database Create Error:", dbError);
         billingRecord = {
           id: 'BILL_' + Date.now(),
           customerName: resolvedCustomerName,
@@ -306,7 +305,6 @@ export async function POST(request: Request) {
         };
       }
 
-      // ✉️ Payment Receipt Email Dispatch for Billing
       if (clientEmail) {
         try {
           const transporter = nodemailer.createTransport({
@@ -356,10 +354,7 @@ export async function POST(request: Request) {
             subject: 'Payment Receipt & Details',
             html: receiptHtml
           });
-          console.log("SUCCESS: Billing email sent to", clientEmail);
-        } catch (mailErr) {
-          console.error("CRITICAL MAIL ERROR:", mailErr);
-        }
+        } catch (mailErr) {}
       }
 
       return NextResponse.json({ 
@@ -367,9 +362,8 @@ export async function POST(request: Request) {
         data: billingRecord, 
         message: 'Billing record saved successfully!' 
       }, { status: 200 });
-  }
+    }
 
-    // 🛑 3. Proposal and Payment Request
     if (type === 'proposal' || (investment && type !== 'contact') || (range && type !== 'contact')) {
       let newProposal;
       try {
@@ -401,7 +395,6 @@ export async function POST(request: Request) {
           const numericRemaining = numericTotal - numericAdvance;
           const resolvedCustomerName = customerName || name || userName || fullName || 'Customer';
 
-          // 🛑 Removed upsert here and used .create so that a new entry is created for every order
           await prisma.billing.create({
             data: {
               customerName: String(resolvedCustomerName),
@@ -413,123 +406,76 @@ export async function POST(request: Request) {
               status: numericAdvance >= numericTotal ? 'Paid' : 'Partial'
             }
           });
-        } catch (e) {
-          console.error("Error creating billing record:", e);
-        }
+        } catch (e) {}
       }
 
-    if (clientEmail) {
-      try {
-        const transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-          },
-        });
+      if (clientEmail) {
+        try {
+          const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+              user: process.env.EMAIL_USER,
+              pass: process.env.EMAIL_PASS,
+            },
+          });
 
-   const totalVal = Number(total || investment || 173999);
-const paidVal = Number(paid || advancePaid || 87000);
-const remainingVal = totalVal - paidVal;
+          const totalVal = Number(total || investment || 173999);
+          const paidVal = Number(paid || advancePaid || 87000);
+          const remainingVal = totalVal - paidVal;
 
-const receiptHtml = `
-  <div style="font-family: Arial, sans-serif; max-width: 550px; margin: auto; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background-color: #ffffff;">
-    <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff; padding: 30px; text-align: center;">
-      <h2 style="margin: 0 0 5px 0; font-size: 22px; color: #ffffff;">VOLONIS TECHNOLOGIES</h2>
-      <p style="margin: 0; font-size: 13px; opacity: 0.9;">Official Payment Receipt</p>
-      <div style="margin-top: 15px; background-color: #10b981; color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block;">
-        PAYMENT SUCCESSFUL ✅
-      </div>
-    </div>
-    
-    <div style="padding: 25px; color: #334155;">
-      <div style="background-color: #f8fafc; border-left: 4px solid #4f46e5; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
-        <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>Customer Name:</strong> ${customerName || name || 'N/A'}</p>
-        <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>Customer Email:</strong> ${clientEmail || 'N/A'}</p>
-        <p style="margin: 0; font-size: 14px;"><strong>Payment ID:</strong> <span style="font-family: monospace; font-weight: bold;">${paymentId || 'N/A'}</span></p>
-      </div>
+          const receiptHtml = `
+            <div style="font-family: Arial, sans-serif; max-width: 550px; margin: auto; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background-color: #ffffff;">
+              <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff; padding: 30px; text-align: center;">
+                <h2 style="margin: 0 0 5px 0; font-size: 22px; color: #ffffff;">VOLONIS TECHNOLOGIES</h2>
+                <p style="margin: 0; font-size: 13px; opacity: 0.9;">Official Payment Receipt</p>
+                <div style="margin-top: 15px; background-color: #10b981; color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block;">
+                  PAYMENT SUCCESSFUL ✅
+                </div>
+              </div>
+              <div style="padding: 25px; color: #334155;">
+                <div style="background-color: #f8fafc; border-left: 4px solid #4f46e5; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                  <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>Customer Name:</strong> ${customerName || name || 'N/A'}</p>
+                  <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>Customer Email:</strong> ${clientEmail || 'N/A'}</p>
+                  <p style="margin: 0; font-size: 14px;"><strong>Payment ID:</strong> <span style="font-family: monospace; font-weight: bold;">${paymentId || 'N/A'}</span></p>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; background-color: #f8fafc; border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0; margin-bottom: 25px;">
+                  <tr>
+                    <td style="padding: 12px 15px; font-size: 14px; color: #334155; font-weight: 600;">Total Payment:</td>
+                    <td style="padding: 12px 15px; font-size: 15px; text-align: right; color: #1e293b; font-weight: bold;">₹${totalVal.toLocaleString('en-IN')}</td>
+                  </tr>
+                  <tr style="border-top: 1px solid #e2e8f0;">
+                    <td style="padding: 12px 15px; font-size: 14px; color: #10b981; font-weight: bold;">Paid Amount:</td>
+                    <td style="padding: 12px 15px; font-size: 15px; text-align: right; color: #10b981; font-weight: bold;">₹${paidVal.toLocaleString('en-IN')}</td>
+                  </tr>
+                  <tr style="border-top: 1px solid #e2e8f0;">
+                    <td style="padding: 12px 15px; font-size: 14px; color: #ef4444; font-weight: bold;">Remaining Balance:</td>
+                    <td style="padding: 12px 15px; font-size: 15px; text-align: right; color: #ef4444; font-weight: bold;">₹${remainingVal.toLocaleString('en-IN')}</td>
+                  </tr>
+                </table>
+                <div style="text-align: center; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">
+                  <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold; color: #1e293b;">Thank You for Your Business!</p>
+                  <p style="margin: 0; font-weight: bold; color: #4f46e5;">VOLONIS TECHNOLOGIES</p>
+                </div>
+              </div>
+            </div>
+          `;
 
-      <!-- Payment Breakdown Table with 3 Rows & 3 Colors -->
-      <table style="width: 100%; border-collapse: collapse; background-color: #f8fafc; border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0; margin-bottom: 25px;">
-        <tr>
-          <td style="padding: 12px 15px; font-size: 14px; color: #334155; font-weight: 600;">Total Payment:</td>
-          <td style="padding: 12px 15px; font-size: 15px; text-align: right; color: #1e293b; font-weight: bold;">₹${totalVal.toLocaleString('en-IN')}</td>
-        </tr>
-        <tr style="border-top: 1px solid #e2e8f0;">
-          <td style="padding: 12px 15px; font-size: 14px; color: #10b981; font-weight: bold;">Paid Amount:</td>
-          <td style="padding: 12px 15px; font-size: 15px; text-align: right; color: #10b981; font-weight: bold;">₹${paidVal.toLocaleString('en-IN')}</td>
-        </tr>
-        <tr style="border-top: 1px solid #e2e8f0;">
-          <td style="padding: 12px 15px; font-size: 14px; color: #ef4444; font-weight: bold;">Remaining Balance:</td>
-          <td style="padding: 12px 15px; font-size: 15px; text-align: right; color: #ef4444; font-weight: bold;">₹${remainingVal.toLocaleString('en-IN')}</td>
-        </tr>
-      </table>
-
-      <div style="text-align: center; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">
-        <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold; color: #1e293b;">Thank You for Your Business!</p>
-        <p style="margin: 0; font-weight: bold; color: #4f46e5;">VOLONIS TECHNOLOGIES</p>
-      </div>
-    </div>
-  </div>
-`;
-
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: clientEmail,
-          subject: 'Payment Receipt & Proposal Details',
-          html: receiptHtml
-        });
-        console.log("SUCCESS: Email sent to", clientEmail);
-      } catch (mailErr) {
-        console.error("CRITICAL MAIL ERROR:", mailErr);
-      }
-    }
-
-    return NextResponse.json({ 
-      success: true, 
-      data: newProposal, 
-      message: 'Payment received and receipt sent successfully!' 
-    }, { status: 200 });
-  }
-
-    // 🛑 4. Contact Form / Inquiry Handling
-    const isContactForm = message || projectDetails || description || subject || fullName || name || workEmail || type === 'contact';
-    if (isContactForm) {
-      const contactName = fullName || name || customerName || userName || 'Website Visitor'
-      const contactEmail = email || workEmail || userEmail || 'no-email@domain.com'
-      const contactMessage = message || projectDetails || description || subject || 'General Inquiry'
-
-      let newContactSub = null
-      try {
-        newContactSub = await prisma.subscription.create({
-          data: {
-            customerName: String(contactName),
-            email: String(contactEmail),
-            productName: `Inquiry: ${String(contactMessage)}`,
-            plan: 'Contact Form',
-            amount: '0',
-            paymentId: paymentId || ('CONTACT_' + Date.now()),
-            durationDays: 0,
-            status: 'Active',
-          },
-        })
-      } catch (dbError: any) {
-        console.error("CRITICAL DB ERROR:", dbError); // આ લાઇન ઉમેરો
-        newContactSub = {
-          id: 'SUB_' + Date.now(),
-          customerName: contactName,
-          email: contactEmail,
-        }
+          await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: clientEmail,
+            subject: 'Payment Receipt & Proposal Details',
+            html: receiptHtml
+          });
+        } catch (mailErr) {}
       }
 
       return NextResponse.json({ 
         success: true, 
-        data: newContactSub, 
-        message: 'Inquiry saved to admin panel successfully!' 
-      }, { status: 200 })
+        data: newProposal, 
+        message: 'Payment received and receipt sent successfully!' 
+      }, { status: 200 });
     }
 
-    // 🛑 5. New Project Creation
     if (type === 'project' || title || (name && !customerName)) {
       const projectName = name || title
       let newProject
@@ -551,7 +497,6 @@ const receiptHtml = `
       return NextResponse.json({ success: true, data: newProject, message: 'Project saved!' }, { status: 200 })
     }
 
-    // 🛑 6. Default Fallback Subscription
     let newSubscription
     try {
       newSubscription = await prisma.subscription.create({
