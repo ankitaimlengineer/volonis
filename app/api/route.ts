@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, data: billingList }, { status: 200 })
     }
 
- if (type === 'visitor') {
+    if (type === 'visitor') {
       let visitorLog = await prisma.visitorLog.findFirst({
         where: { date: todayStr }
       }).catch(() => null)
@@ -136,16 +136,11 @@ export async function GET(request: Request) {
     }, { status: 200 })
 
   } catch (error: any) {
+    console.error("GET API ERROR:", error)
     return NextResponse.json({ 
-      success: true, 
-      data: [], 
-      projects: [], 
-      proposals: [],
-      billing: [],
-      visitorCount: 0, 
-      monthlyVisitorCount: 0, 
-      message: error?.message 
-    }, { status: 200 })
+      success: false, 
+      message: error?.message || 'Server error' 
+    }, { status: 500 })
   }
 }
 
@@ -160,9 +155,10 @@ export async function POST(request: Request) {
       itemsList, paid, remaining, total, address 
     } = body
 
+    // 1. Send OTP
     if (type === 'send-otp') {
       if (!email) {
-        return NextResponse.json({ success: false, message: 'Email is required!' }, { status: 200 })
+        return NextResponse.json({ success: false, message: 'Email is required!' }, { status: 400 })
       }
 
       const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString()
@@ -196,29 +192,29 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, message: 'OTP sent successfully to your email!' }, { status: 200 })
       } catch (mailError: any) {
-        return NextResponse.json({ success: false, message: 'Failed to send email.' }, { status: 200 })
+        console.error("MAIL ERROR:", mailError)
+        return NextResponse.json({ success: false, message: 'Failed to send email.' }, { status: 500 })
       }
     }
 
+    // 2. Verify OTP
     if (type === 'verify-otp') {
       if (!email || !otp) {
-        return NextResponse.json({ success: false, message: 'Email and OTP are required!' }, { status: 200 })
+        return NextResponse.json({ success: false, message: 'Email and OTP are required!' }, { status: 400 })
       }
 
       const record = otpStore[email]
       if (!record || Date.now() > record.expires) {
-        return NextResponse.json({ success: false, message: 'OTP not found or expired!' }, { status: 200 })
+        return NextResponse.json({ success: false, message: 'OTP not found or expired!' }, { status: 400 })
       }
 
       if (record.otp !== otp) {
-        return NextResponse.json({ success: false, message: 'Invalid OTP!' }, { status: 200 })
+        return NextResponse.json({ success: false, message: 'Invalid OTP!' }, { status: 400 })
       }
 
       try {
-        await prisma.billing.upsert({
-          where: { email: String(email) } as any,
-          update: {}, 
-          create: {
+        await prisma.billing.create({
+          data: {
             customerName: String(name || fullName || email.split('@')[0]),
             email: String(email),
             itemsList: 'OTP Verified - Selecting Package',
@@ -228,39 +224,33 @@ export async function POST(request: Request) {
             status: 'Pending',
           },
         });
-      } catch (err) {}
+      } catch (err) {
+        console.error("OTP Billing Save Error:", err)
+      }
 
       delete otpStore[email]
       return NextResponse.json({ success: true, message: 'Email verified successfully!' }, { status: 200 })
     }
 
+    // 3. CONTACT FORM (સુરક્ષિત રીતે Subscription ટેબલમાં સેવ થશે)
     const isContactForm = type === 'contact' || message || projectDetails || description || subject || fullName || name || workEmail;
-    if (isContactForm && !investment && !range && !itemsList) {
+    if (isContactForm && !investment && !range && !itemsList && type !== 'billing' && type !== 'proposal') {
       const contactName = fullName || name || customerName || userName || 'Website Visitor'
       const contactEmail = email || workEmail || userEmail || 'no-email@domain.com'
       const contactMessage = message || projectDetails || description || subject || 'General Inquiry'
 
-      let newContactSub = null
-      try {
-        newContactSub = await prisma.subscription.create({
-          data: {
-            customerName: String(contactName),
-            email: String(contactEmail),
-            productName: `Inquiry: ${String(contactMessage)}`,
-            plan: plan || 'Contact Form',
-            amount: '0',
-            paymentId: paymentId || ('CONTACT_' + Date.now()),
-            durationDays: 0,
-            status: 'Active',
-          },
-        })
-      } catch (dbError: any) {
-        newContactSub = {
-          id: 'SUB_' + Date.now(),
-          customerName: contactName,
-          email: contactEmail,
-        }
-      }
+      const newContactSub = await prisma.subscription.create({
+        data: {
+          customerName: String(contactName),
+          email: String(contactEmail),
+          productName: `Inquiry: ${String(contactMessage)}`,
+          plan: plan || 'Contact Form',
+          amount: '0',
+          paymentId: paymentId || ('CONTACT_' + Date.now()),
+          durationDays: 0,
+          status: 'Active',
+        },
+      })
 
       return NextResponse.json({ 
         success: true, 
@@ -269,42 +259,31 @@ export async function POST(request: Request) {
       }, { status: 200 })
     }
 
+    // 4. BILLING / COST CALCULATOR / PAYMENT (Billing ટેબલમાં સેવ થશે)
     const finalClientEmail = email || userEmail || workEmail || body.customerEmail;
-    if ((type === 'billing' || (finalClientEmail && (itemsList || total !== undefined || amount !== undefined))) && plan !== 'Website Inquiry') {
-      const clientEmail = finalClientEmail;
-      const calcTotal = Number(total || amount || 0);
+    if (type === 'billing' || (finalClientEmail && (itemsList || total !== undefined || amount !== undefined || investment || range))) {
+      const clientEmail = finalClientEmail || 'no-email@domain.com';
+      const calcTotal = Number(total || amount || investment || range || 0);
       const calcPaid = Number(paid || advancePaid || 0);
       const calcRemaining = remaining !== undefined ? Number(remaining) : (calcTotal - calcPaid);
       const calcStatus = status || (calcPaid >= calcTotal ? 'Paid' : (calcPaid > 0 ? 'Partial' : 'Pending'));
       const resolvedCustomerName = customerName || name || userName || fullName || 'Customer';
-      
-      let billingRecord;
-      try {
-        billingRecord = await prisma.billing.create({
-          data: {
-            customerName: String(resolvedCustomerName),
-            email: String(clientEmail),
-            itemsList: String(itemsList || 'Custom Package'),
-            total: calcTotal,
-            paid: calcPaid,
-            remaining: calcRemaining,
-            status: String(calcStatus),
-          },
-        });
-      } catch (dbError: any) {
-        billingRecord = {
-          id: 'BILL_' + Date.now(),
-          customerName: resolvedCustomerName,
-          email: clientEmail,
-          itemsList,
+      const resolvedItemsList = String(itemsList || scopeItems || productName || 'Cost Calculator Package');
+
+      const billingRecord = await prisma.billing.create({
+        data: {
+          customerName: String(resolvedCustomerName),
+          email: String(clientEmail),
+          itemsList: resolvedItemsList,
           total: calcTotal,
           paid: calcPaid,
           remaining: calcRemaining,
-          status: calcStatus
-        };
-      }
+          status: String(calcStatus),
+        },
+      });
 
-      if (clientEmail) {
+      // Email Receipt મોકલવા માટે
+      if (clientEmail && clientEmail !== 'no-email@domain.com') {
         try {
           const transporter = nodemailer.createTransport({
             service: 'gmail',
@@ -327,9 +306,13 @@ export async function POST(request: Request) {
                 <div style="background-color: #f3f4f6; border-left: 4px solid #4f46e5; padding: 15px; border-radius: 4px; margin-bottom: 25px; font-size: 14px;">
                   <p style="margin: 0 0 5px 0; color: #4b5563;"><strong>Customer Name:</strong> ${resolvedCustomerName}</p>
                   <p style="margin: 0 0 5px 0; color: #4b5563;"><strong>Customer Email:</strong> ${clientEmail}</p>
-                  <p style="margin: 0; color: #4b5563;"><strong>Payment ID:</strong> <span style="font-family: monospace; color: #111827; font-weight: bold;">${paymentId || 'N/A'}</span></p>
+                  <p style="margin: 0; color: #4b5563;"><strong>Payment ID:</strong> <span style="font-family: monospace; color: #111827; font-weight: bold;">${paymentId || ('PAY_' + Date.now())}</span></p>
                 </div>
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px;">
+                  <tr>
+                    <td style="padding: 10px 15px; font-size: 14px; color: #4b5563;">Package / Items:</td>
+                    <td style="padding: 10px 15px; font-size: 14px; text-align: right; color: #1f2937; font-weight: bold;">${resolvedItemsList}</td>
+                  </tr>
                   <tr>
                     <td style="padding: 10px 15px; font-size: 14px; color: #4b5563;">Total Payment:</td>
                     <td style="padding: 10px 15px; font-size: 14px; text-align: right; color: #1f2937; font-weight: bold;">₹${calcTotal}</td>
@@ -353,7 +336,9 @@ export async function POST(request: Request) {
             subject: 'Payment Receipt & Details',
             html: receiptHtml
           });
-        } catch (mailErr) {}
+        } catch (mailErr) {
+          console.error("Receipt Email Error:", mailErr)
+        }
       }
 
       return NextResponse.json({ 
@@ -363,160 +348,64 @@ export async function POST(request: Request) {
       }, { status: 200 });
     }
 
-    if (type === 'proposal' || (investment && type !== 'contact') || (range && type !== 'contact')) {
-      let newProposal;
-      try {
-        newProposal = await prisma.proposal.create({
-          data: {
-            investment: investment || range || '₹69K – ₹87K',
-            timeline: timeline || '9 weeks',
-            coreTeam: coreTeam || '3 engineers',
-            scopeItems: scopeItems || '3 modules',
-            status: status || 'Pending Approval',
-          },
-        });
-      } catch (dbError: any) {
-        newProposal = {
-          id: 'PROP_' + Date.now(),
+    // 5. PROPOSAL
+    if (type === 'proposal' || investment) {
+      const newProposal = await prisma.proposal.create({
+        data: {
           investment: investment || range || '₹69K – ₹87K',
-          paymentId: paymentId || 'PAY_' + Date.now(),
-          paymentStatus: 'Paid'
-        };
-      }
-
-      const clientEmail = email || userEmail || workEmail || body.customerEmail;
-      
-      if (clientEmail) {
-        try {
-          const invText = String(investment || range || '₹116,999');
-          const numericTotal = Number(invText.replace(/[^0-9]/g, '')) || 116999;
-          const numericAdvance = Number(String(advancePaid || '58500').replace(/[^0-9]/g, '')) || (numericTotal / 2);
-          const numericRemaining = numericTotal - numericAdvance;
-          const resolvedCustomerName = customerName || name || userName || fullName || 'Customer';
-
-          await prisma.billing.create({
-            data: {
-              customerName: String(resolvedCustomerName),
-              email: String(clientEmail),
-              itemsList: String(scopeItems || itemsList || 'Selected Packages & Features'),
-              total: numericTotal,
-              paid: numericAdvance,
-              remaining: numericRemaining,
-              status: numericAdvance >= numericTotal ? 'Paid' : 'Partial'
-            }
-          });
-        } catch (e) {}
-      }
-
-      if (clientEmail) {
-        try {
-          const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-              user: process.env.EMAIL_USER,
-              pass: process.env.EMAIL_PASS,
-            },
-          });
-
-          const totalVal = Number(total || investment || 173999);
-          const paidVal = Number(paid || advancePaid || 87000);
-          const remainingVal = totalVal - paidVal;
-
-          const receiptHtml = `
-            <div style="font-family: Arial, sans-serif; max-width: 550px; margin: auto; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background-color: #ffffff;">
-              <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: #ffffff; padding: 30px; text-align: center;">
-                <h2 style="margin: 0 0 5px 0; font-size: 22px; color: #ffffff;">VOLONIS TECHNOLOGIES</h2>
-                <p style="margin: 0; font-size: 13px; opacity: 0.9;">Official Payment Receipt</p>
-                <div style="margin-top: 15px; background-color: #10b981; color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block;">
-                  PAYMENT SUCCESSFUL ✅
-                </div>
-              </div>
-              <div style="padding: 25px; color: #334155;">
-                <div style="background-color: #f8fafc; border-left: 4px solid #4f46e5; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
-                  <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>Customer Name:</strong> ${customerName || name || 'N/A'}</p>
-                  <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>Customer Email:</strong> ${clientEmail || 'N/A'}</p>
-                  <p style="margin: 0; font-size: 14px;"><strong>Payment ID:</strong> <span style="font-family: monospace; font-weight: bold;">${paymentId || 'N/A'}</span></p>
-                </div>
-                <table style="width: 100%; border-collapse: collapse; background-color: #f8fafc; border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0; margin-bottom: 25px;">
-                  <tr>
-                    <td style="padding: 12px 15px; font-size: 14px; color: #334155; font-weight: 600;">Total Payment:</td>
-                    <td style="padding: 12px 15px; font-size: 15px; text-align: right; color: #1e293b; font-weight: bold;">₹${totalVal.toLocaleString('en-IN')}</td>
-                  </tr>
-                  <tr style="border-top: 1px solid #e2e8f0;">
-                    <td style="padding: 12px 15px; font-size: 14px; color: #10b981; font-weight: bold;">Paid Amount:</td>
-                    <td style="padding: 12px 15px; font-size: 15px; text-align: right; color: #10b981; font-weight: bold;">₹${paidVal.toLocaleString('en-IN')}</td>
-                  </tr>
-                  <tr style="border-top: 1px solid #e2e8f0;">
-                    <td style="padding: 12px 15px; font-size: 14px; color: #ef4444; font-weight: bold;">Remaining Balance:</td>
-                    <td style="padding: 12px 15px; font-size: 15px; text-align: right; color: #ef4444; font-weight: bold;">₹${remainingVal.toLocaleString('en-IN')}</td>
-                  </tr>
-                </table>
-                <div style="text-align: center; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b;">
-                  <p style="margin: 0 0 5px 0; font-size: 14px; font-weight: bold; color: #1e293b;">Thank You for Your Business!</p>
-                  <p style="margin: 0; font-weight: bold; color: #4f46e5;">VOLONIS TECHNOLOGIES</p>
-                </div>
-              </div>
-            </div>
-          `;
-
-          await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: clientEmail,
-            subject: 'Payment Receipt & Proposal Details',
-            html: receiptHtml
-          });
-        } catch (mailErr) {}
-      }
+          timeline: timeline || '9 weeks',
+          coreTeam: coreTeam || '3 engineers',
+          scopeItems: scopeItems || '3 modules',
+          status: status || 'Pending Approval',
+        },
+      });
 
       return NextResponse.json({ 
         success: true, 
         data: newProposal, 
-        message: 'Payment received and receipt sent successfully!' 
+        message: 'Proposal saved successfully!' 
       }, { status: 200 });
     }
 
+    // 6. PROJECTS
     if (type === 'project' || title || (name && !customerName)) {
-      const projectName = name || title
-      let newProject
-      try {
-        newProject = await prisma.project.create({
-          data: {
-            name: projectName,
-            clientName: clientName || 'General Client',
-            category: category || 'Web Development',
-            status: status || 'Active',
-            progress: Number(progress || 0),
-            priority: priority || 'Medium',
-          },
-        })
-      } catch (dbError: any) {
-        newProject = { id: 'PRJ_' + Date.now(), name: projectName };
-      }
+      const projectName = name || title || 'New Project'
+      const newProject = await prisma.project.create({
+        data: {
+          name: projectName,
+          clientName: clientName || 'General Client',
+          category: category || 'Web Development',
+          status: status || 'Active',
+          progress: Number(progress || 0),
+          priority: priority || 'Medium',
+        },
+      })
 
       return NextResponse.json({ success: true, data: newProject, message: 'Project saved!' }, { status: 200 })
     }
 
-    let newSubscription
-    try {
-      newSubscription = await prisma.subscription.create({
-        data: {
-          customerName: customerName || name || fullName || 'Guest',
-          email: email || workEmail || 'no-email@domain.com',
-          productName: productName || 'Inquiry',
-          plan: plan || 'Custom',
-          amount: String(amount || '0'),
-          paymentId: paymentId || 'VOLONIS_' + Date.now(),
-          durationDays: Number(durationDays || 30),
-          status: 'Active',
-        },
-      })
-    } catch (dbError: any) {
-      newSubscription = { id: 'SUB_' + Date.now() };
-    }
+    // Default Fallback Subscription Save
+    const newSubscription = await prisma.subscription.create({
+      data: {
+        customerName: customerName || name || fullName || 'Guest',
+        email: email || workEmail || 'no-email@domain.com',
+        productName: productName || 'Inquiry',
+        plan: plan || 'Custom',
+        amount: String(amount || '0'),
+        paymentId: paymentId || 'VOLONIS_' + Date.now(),
+        durationDays: Number(durationDays || 30),
+        status: 'Active',
+      },
+    })
 
     return NextResponse.json({ success: true, data: newSubscription, message: 'Saved successfully!' }, { status: 200 })
+
   } catch (error: any) {
-    return NextResponse.json({ success: true, message: 'Processed.' }, { status: 200 })
+    console.error("POST API ERROR:", error)
+    return NextResponse.json({ 
+      success: false, 
+      message: error?.message || 'Database save failed' 
+    }, { status: 500 })
   }
 }
 
@@ -526,30 +415,26 @@ export async function PUT(request: Request) {
     const { id, type, status, investment, scopeItems } = body
 
     if (!id) {
-      return NextResponse.json({ success: false, message: 'ID not found!' }, { status: 200 })
+      return NextResponse.json({ success: false, message: 'ID not found!' }, { status: 400 })
     }
 
     if (type === 'proposal' || !type) {
-      let updatedProposal = null
-      try {
-        updatedProposal = await prisma.proposal.update({
-          where: { id: id },
-          data: {
-            ...(status && { status }),
-            ...(investment && { investment }),
-            ...(scopeItems && { scopeItems }),
-          },
-        })
-      } catch (e) {
-        updatedProposal = { id, status }
-      }
+      const updatedProposal = await prisma.proposal.update({
+        where: { id: id },
+        data: {
+          ...(status && { status }),
+          ...(investment && { investment }),
+          ...(scopeItems && { scopeItems }),
+        },
+      })
 
       return NextResponse.json({ success: true, data: updatedProposal, message: 'Updated successfully!' }, { status: 200 })
     }
 
     return NextResponse.json({ success: true, message: 'Updated.' }, { status: 200 })
   } catch (error: any) {
-    return NextResponse.json({ success: true, message: 'Update processed.' }, { status: 200 })
+    console.error("PUT API ERROR:", error)
+    return NextResponse.json({ success: false, message: error?.message || 'Update failed' }, { status: 500 })
   }
 }
 
@@ -560,27 +445,28 @@ export async function DELETE(request: Request) {
     const type = searchParams.get('type')
 
     if (!id) {
-      return NextResponse.json({ success: false, message: 'ID not found!' }, { status: 200 })
+      return NextResponse.json({ success: false, message: 'ID not found!' }, { status: 400 })
     }
 
     if (type === 'proposal') {
-      await prisma.proposal.delete({ where: { id: id } }).catch(() => {})
+      await prisma.proposal.delete({ where: { id: id } })
       return NextResponse.json({ success: true, message: 'Proposal deleted!' }, { status: 200 })
     }
 
     if (type === 'project') {
-      await prisma.project.delete({ where: { id: id } }).catch(() => {})
+      await prisma.project.delete({ where: { id: id } })
       return NextResponse.json({ success: true, message: 'Project deleted!' }, { status: 200 })
     }
 
     if (type === 'billing' || type === 'bill') {
-      await prisma.billing.delete({ where: { id: id } }).catch(() => {})
+      await prisma.billing.delete({ where: { id: id } })
       return NextResponse.json({ success: true, message: 'Billing record deleted!' }, { status: 200 })
     }
 
-    await prisma.subscription.delete({ where: { id: id } }).catch(() => {})
+    await prisma.subscription.delete({ where: { id: id } })
     return NextResponse.json({ success: true, message: 'Deleted!' }, { status: 200 })
   } catch (error: any) {
-    return NextResponse.json({ success: true, message: 'Deleted.' }, { status: 200 })
+    console.error("DELETE API ERROR:", error)
+    return NextResponse.json({ success: false, message: error?.message || 'Delete failed' }, { status: 500 })
   }
 }
