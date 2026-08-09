@@ -1,0 +1,76 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Subscription {
+  id           String   @id @default(cuid())
+  customerName String
+  email        String
+  productName  String   @default("Inquiry / Contact")
+  plan         String   @default("Custom")
+  amount       String   @default("0")
+  paymentId    String   @default("")
+  durationDays Int      @default(30)
+  status       String   @default("Active")
+  createdAt    DateTime @default(now())
+}
+model Order {
+  id        String   @id @default(cuid())
+  userName  String
+  product   String
+  amount    Float
+  status    String   @default("Pending")
+  createdAt DateTime @default(now())
+}
+model VisitorLog {
+  id        String   @id @default(uuid())
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+  date  String?
+}
+model Project {
+  id         String   @id @default(uuid())
+  name       String
+  clientName String?
+  category   String?
+  status     String   @default("In Progress")
+  progress   Int      @default(0)
+  priority   String   @default("Medium")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+model Proposal {
+  id           String   @id @default(uuid())
+  investment   String   // દા.ત. ₹69K – ₹87K
+  timeline     String   // દા.ત. 9 weeks
+  coreTeam     String   // દા.ત. 3 engineers
+  scopeItems   String   // દા.ત. 3 modules
+  status       String   @default("Pending")
+  createdAt    DateTime @default(now())
+}
+model CostEstimateOrder {
+  id              String   @id @default(cuid())
+  clientEmail     String   
+  itemsList       String   
+  totalAmount     Float    
+  paidAmount      Float    
+  remainingAmount Float   
+  paymentStatus   String   @default("Pending") 
+  createdAt       DateTime @default(now())
+}
+model Billing {
+  id           String   @id @default(uuid())
+  email        String   // 👈 અહીંથી @unique કાઢી નાખ્યું
+  customerName String?  
+  itemsList    String
+  total        Float
+  paid         Float
+  remaining    Float
+  status       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
