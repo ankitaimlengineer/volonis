@@ -234,7 +234,7 @@ const WEB_PACKAGES = [
   {
     id: 'starter',
     label: 'STARTER',
-    price: 9000,
+    price: 9999,
     weeks: 2,
     hint: 'Essential features for small projects & fast online launch',
     deliverables: [
