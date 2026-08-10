@@ -565,10 +565,11 @@ export function CostEstimator() {
 
     try {
       setLoading(true)
+      // અહીં name મોકલવામાં આવ્યો છે જેથી backend માં ઈમેઈલના ભાગને બદલે યુઝરે નાખેલું સાચું નામ સેવ થાય
       const res = await fetch('/api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'verify-otp', email, otp: otpInput.trim() }),
+        body: JSON.stringify({ type: 'verify-otp', email, name: name.trim(), otp: otpInput.trim() }),
       })
       const data = await res.json()
       if (res.ok && data.success) {
@@ -617,6 +618,7 @@ export function CostEstimator() {
         body: JSON.stringify({
           type: 'proposal',
           name: name,
+          customerName: name, // 👈 સાચું નામ એડમિન અને બિલિંગમાં મોકલવા માટે
           email: email,
           address: address,
           paymentId: paymentId,
@@ -690,6 +692,7 @@ export function CostEstimator() {
               body: JSON.stringify({
                 type: 'proposal',
                 name: name,
+                customerName: name, // 👈 સાચું નામ એડમિન અને બિલિંગમાં મોકલવા માટે
                 email: email,
                 address: address,
                 paymentId: paymentId,
