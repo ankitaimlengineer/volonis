@@ -30,10 +30,10 @@ export function ContactSection() {
   const [loading, setLoading] = useState(false)
   const [bookingLoading, setBookingLoading] = useState(false)
 
-  // If you want to restart the booking widget, change 'false' to 'true' here.
+  // 👉 જો તમારે બુકિંગ વિજેટ ફરી શરૂ કરવું હોય, તો અહીં 'false' ની જગ્યાએ 'true' કરી દેવું.
   const isStrategyCallActive = false;
 
-  // Function to submit the form and send data to the API
+  // ફોર્મ સબમીટ કરીને API માં ડેટા મોકલવાનું ફંક્શન
   const handleSubmitForm = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
@@ -57,11 +57,10 @@ export function ContactSection() {
           email: email,
           message: message,
           projectDetails: message,
-          productName: `Inquiry: ${message ? message.substring(0, 30) : 'Website Inquiry'}`,
-          plan: 'Website Inquiry',
-          source: 'Website',
+          productName: message ? message : 'Volonis Project / Inquiry',
+          plan: 'Contact Form',
           amount: '0',
-          paymentId: 'INQ_' + Date.now(),
+          paymentId: 'VOLONIS_' + Date.now(),
           durationDays: 30,
         }),
       })
@@ -70,7 +69,7 @@ export function ContactSection() {
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text()
         console.error('Non-JSON Response:', text)
-        throw new Error('Received an incorrect response from the server (HTML Error).')
+        throw new Error('સર્વરમાંથી ખોટો રિસ્પોન્સ આવ્યો છે (HTML Error).')
       }
 
       const result = await response.json()
@@ -79,17 +78,17 @@ export function ContactSection() {
         setSent(true)
         formElement.reset()
       } else {
-        alert(result.message || 'Error saving data.')
+        alert(result.message || 'ડેટા સેવ કરવામાં ભૂલ છે.')
       }
     } catch (error: any) {
       console.error('Error:', error)
-      alert(error.message || 'An error occurred while submitting.')
+      alert(error.message || 'સબમીટ કરવામાં એરર આવી.')
     } finally {
       setLoading(false)
     }
   }
 
-  // Strategy call booking function (to save in the database)
+  // સ્ટ્રેટેજી કૉલ બુકિંગ ફંક્શન (ડેટાબેઝમાં સેવ કરવા માટે)
   const handleBookCall = async () => {
     if (!slot) return
     setBookingLoading(true)
@@ -113,7 +112,7 @@ export function ContactSection() {
 
       const contentType = response.headers.get('content-type')
       if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Server error is occurring.')
+        throw new Error('સર્વર એરર આવી રહી છે.')
       }
 
       const result = await response.json()
@@ -121,11 +120,11 @@ export function ContactSection() {
       if (response.ok && result.success) {
         setBooked(true)
       } else {
-        alert(result.message || 'Error saving booking.')
+        alert(result.message || 'બુકિંગ સેવ કરવામાં એરર આવી.')
       }
     } catch (error: any) {
       console.error('Booking Error:', error)
-      alert(error.message || 'Booking failed.')
+      alert(error.message || 'બુકિંગ ફેલ થયું.')
     } finally {
       setBookingLoading(false)
     }
@@ -268,7 +267,7 @@ export function ContactSection() {
               </li>
               <li className="flex items-center gap-3 text-sm text-muted-foreground font-medium">
                 <MapPin className="size-4 shrink-0 text-accent" aria-hidden="true" />
-                <span>India</span>
+                <span>I</span>
               </li>
             </ul>
           </motion.div>
