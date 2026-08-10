@@ -212,10 +212,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, message: 'Invalid OTP!' }, { status: 400 })
       }
 
+      const verifiedCustomerName = String(name || fullName || userName || email.split('@')[0]);
+
       try {
         await prisma.billing.create({
           data: {
-            customerName: String(name || fullName || email.split('@')[0]),
+            customerName: verifiedCustomerName,
             email: String(email),
             itemsList: 'OTP Verified - Selecting Package',
             total: 0,
@@ -232,7 +234,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: 'Email verified successfully!' }, { status: 200 })
     }
 
-    // 3. CONTACT FORM (સુરક્ષિત રીતે Subscription ટેબલમાં સેવ થશે)
+    // 3. CONTACT FORM
     const isContactForm = type === 'contact' || message || projectDetails || description || subject || fullName || name || workEmail;
     if (isContactForm && !investment && !range && !itemsList && type !== 'billing' && type !== 'proposal') {
       const contactName = fullName || name || customerName || userName || 'Website Visitor'
@@ -259,7 +261,7 @@ export async function POST(request: Request) {
       }, { status: 200 })
     }
 
-    // 4. BILLING / COST CALCULATOR / PAYMENT (Billing ટેબલમાં સેવ થશે)
+    // 4. BILLING / COST CALCULATOR / PAYMENT (ઓટોમેટિક નામ અને જીમેઇલ સાથે સેવ થશે)
     const finalClientEmail = email || userEmail || workEmail || body.customerEmail;
     if (type === 'billing' || (finalClientEmail && (itemsList || total !== undefined || amount !== undefined || investment || range))) {
       const clientEmail = finalClientEmail || 'no-email@domain.com';
@@ -267,12 +269,14 @@ export async function POST(request: Request) {
       const calcPaid = Number(paid || advancePaid || 0);
       const calcRemaining = remaining !== undefined ? Number(remaining) : (calcTotal - calcPaid);
       const calcStatus = status || (calcPaid >= calcTotal ? 'Paid' : (calcPaid > 0 ? 'Partial' : 'Pending'));
-      const resolvedCustomerName = customerName || name || userName || fullName || 'Customer';
+      
+      // અહીં યુઝરનું સાચું નામ ઓટોમેટિક કેપ્ચર થશે (જો ના હોય તો ઈમેઈલના `@` પહેલાનો ભાગ અથવા 'Customer' લેશે)
+      const resolvedCustomerName = String(customerName || name || userName || fullName || clientEmail.split('@')[0] || 'Customer');
       const resolvedItemsList = String(itemsList || scopeItems || productName || 'Cost Calculator Package');
 
       const billingRecord = await prisma.billing.create({
         data: {
-          customerName: String(resolvedCustomerName),
+          customerName: resolvedCustomerName,
           email: String(clientEmail),
           itemsList: resolvedItemsList,
           total: calcTotal,
