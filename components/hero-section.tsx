@@ -5,10 +5,10 @@ import { ArrowRight, Calculator, Sparkles, CheckCircle, ShieldCheck } from 'luci
 import { NetworkVisual } from '@/components/network-visual'
 
 const STATS = [
-  { value: '120+', label: 'Enterprise deployments' },
-  { value: '18', label: 'Countries served' },
-  { value: '99.98%', label: 'Platform uptime' },
-  { value: '4.2x', label: 'Avg. ROI uplift' },
+  { value: 'AI-First', label: 'Engineering Approach' },
+  { value: 'Cloud-Native', label: 'Modern Architecture' },
+  { value: 'End-to-End', label: 'Product Development' },
+  { value: '24/7', label: 'Digital Support' },
 ]
 
 export function HeroSection() {
