@@ -33,8 +33,8 @@ const COLUMNS = [
     heading: 'Company',
     links: [
       { label: 'About', href: '#about' },
-      { label: 'Case Studies', href: '#case-studies' },
-      { label: 'Products', href: '#products' },
+      { label: 'Projects', href: '#case-studies' },
+      { label: 'Services', href: '#services' },
       { label: 'Contact', href: '#contact' },
     ],
   },
@@ -42,18 +42,24 @@ const COLUMNS = [
     heading: 'Services',
     links: [
       { label: 'AI & Automation', href: '#services' },
-      { label: 'Web & App Ecosystems', href: '#services' },
-      { label: 'E-Commerce SaaS', href: '#services' },
-      { label: 'Cloud & Security', href: '#services' },
+      { label: 'Custom Software', href: '#services' },
+      { label: 'Web & App Development', href: '#services' },
+      { label: 'SaaS Solutions', href: '#services' },
     ],
   },
   {
-    heading: 'Resources',
+    heading: 'Connect',
     links: [
+      { label: 'Start a Project', href: '#contact' },
       { label: 'Project Estimator', href: '#estimator' },
-      { label: 'Book a Call', href: '#contact' },
-      { label: 'Documentation', href: '#products' },
-      { label: 'Careers', href: '#about' },
+      {
+        label: 'LinkedIn',
+        href: 'https://www.linkedin.com/in/ankit-thummar-b46686361',
+      },
+      {
+        label: 'GitHub',
+        href: 'https://github.com/ankitaimlengineer',
+      },
     ],
   },
 ]
@@ -61,14 +67,12 @@ const COLUMNS = [
 const LEGAL = [
   { label: 'Privacy Policy', href: '#' },
   { label: 'Terms of Service', href: '#' },
-  { label: 'Security', href: '#' },
-  { label: 'Cookie Policy', href: '#' },
 ]
 
 export function SiteFooter() {
   return (
-    <footer className="relative border-t border-border/60 bg-card/20 backdrop-blur-xl overflow-hidden">
-      {/* Ambient background glows */}
+    <footer className="relative overflow-hidden border-t border-border/60 bg-card/20 backdrop-blur-xl">
+      {/* Ambient background glow */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute bottom-0 left-1/2 -z-10 h-72 w-[35rem] -translate-x-1/2 rounded-full bg-accent/10 blur-[140px]"
@@ -76,31 +80,37 @@ export function SiteFooter() {
 
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_2fr]">
+          {/* Brand / Company Info */}
           <div className="flex flex-col items-start">
-            {/* Logo */}
-            <a href="#home" className="group flex items-center gap-3.5" aria-label="VOLONIS home">
+            <a
+              href="#home"
+              className="group flex items-center gap-3.5"
+              aria-label="VOLONIS home"
+            >
               <div className="rounded-2xl border border-border/80 bg-background/50 p-2.5 shadow-sm transition-all duration-300 group-hover:border-accent/50 group-hover:shadow-[0_0_20px_rgba(0,212,255,0.2)]">
-                <img 
-                  src="/logo.svg" 
-                  alt="VOLONIS Logo" 
-                  className="h-8 w-auto" 
+                <img
+                  src="/logo.svg"
+                  alt="VOLONIS Logo"
+                  className="h-8 w-auto"
                 />
               </div>
+
               <span className="font-display text-2xl font-extrabold tracking-[0.25em] text-foreground text-glow">
                 VOLONIS
               </span>
             </a>
-            
+
             <p className="mt-5 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              VOLONIS is an international AI and IT engineering firm building
-              scalable software infrastructure, intelligent automation, and SaaS
-              platforms for enterprises operating across borders.
+              VOLONIS TECHNOLOGIES is an India-based technology company
+              building AI solutions, custom software, automation, and SaaS
+              products for businesses worldwide.
             </p>
 
+            {/* Social Links */}
             <ul className="mt-7 flex items-center gap-3">
               <li>
                 <a
-                  href="https://linkedin.com"
+                  href="https://www.linkedin.com/in/ankit-thummar-b46686361"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="VOLONIS on LinkedIn"
@@ -109,20 +119,22 @@ export function SiteFooter() {
                   <LinkedInIcon className="size-4" />
                 </a>
               </li>
+
               <li>
                 <a
-                  href="https://github.com"
+                  href="https://github.com/ankitaimlengineer"
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label="VOLONIS on GitHub"
+                  aria-label="VOLONIS GitHub projects"
                   className="inline-flex size-10.5 items-center justify-center rounded-xl border border-border/80 bg-background/50 text-muted-foreground transition-all duration-300 hover:border-accent/60 hover:bg-accent/10 hover:text-accent hover:shadow-[0_0_15px_rgba(0,212,255,0.25)]"
                 >
                   <GitHubIcon className="size-4" />
                 </a>
               </li>
+
               <li>
                 <a
-                  href="mailto:hello@volonis.com"
+                  href="mailto:contact.volonis@gmail.com"
                   aria-label="Email VOLONIS"
                   className="inline-flex size-10.5 items-center justify-center rounded-xl border border-border/80 bg-background/50 text-muted-foreground transition-all duration-300 hover:border-accent/60 hover:bg-accent/10 hover:text-accent hover:shadow-[0_0_15px_rgba(0,212,255,0.25)]"
                 >
@@ -130,39 +142,59 @@ export function SiteFooter() {
                 </a>
               </li>
             </ul>
+
+            {/* Contact Email */}
+            <a
+              href="mailto:contact.volonis@gmail.com"
+              className="mt-5 text-sm font-medium text-muted-foreground transition-colors hover:text-accent"
+            >
+              contact.volonis@gmail.com
+            </a>
           </div>
 
+          {/* Footer Navigation */}
           <nav
             className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:pl-6"
             aria-label="Footer navigation"
           >
             {COLUMNS.map((col) => (
               <div key={col.heading}>
-                <h2 className="font-display text-sm font-semibold tracking-wider text-foreground uppercase">
+                <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-foreground">
                   {col.heading}
                 </h2>
+
                 <ul className="mt-5 grid gap-3">
-                  {col.links.map((link) => (
-                    <li key={link.label}>
-                      <a
-                        href={link.href}
-                        className="text-sm text-muted-foreground transition-colors hover:text-accent inline-block py-0.5"
-                      >
-                        {link.label}
-                      </a>
-                    </li>
-                  ))}
+                  {col.links.map((link) => {
+                    const isExternal =
+                      link.href.startsWith('http://') ||
+                      link.href.startsWith('https://')
+
+                    return (
+                      <li key={link.label}>
+                        <a
+                          href={link.href}
+                          target={isExternal ? '_blank' : undefined}
+                          rel={isExternal ? 'noopener noreferrer' : undefined}
+                          className="inline-block py-0.5 text-sm text-muted-foreground transition-colors hover:text-accent"
+                        >
+                          {link.label}
+                        </a>
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
             ))}
           </nav>
         </div>
 
+        {/* Bottom Footer */}
         <div className="mt-14 flex flex-col gap-5 border-t border-border/60 pt-8 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-muted-foreground font-medium">
-            © {new Date().getFullYear()} VOLONIS Technologies B.V. All rights
+          <p className="text-xs font-medium text-muted-foreground">
+            © {new Date().getFullYear()} VOLONIS TECHNOLOGIES. All rights
             reserved.
           </p>
+
           <ul className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {LEGAL.map((item) => (
               <li key={item.label}>

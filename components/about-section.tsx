@@ -2,30 +2,37 @@
 
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { Award, Globe2, ShieldCheck, Users2, ArrowRight, CheckCircle2, Layers } from 'lucide-react'
+import {
+  ArrowRight,
+  Globe2,
+  ShieldCheck,
+  Users2,
+  Layers,
+  Code2,
+} from 'lucide-react'
 import { SectionHeading } from '@/components/section-heading'
 import { cn } from '@/lib/utils'
 
 const PILLARS = [
   {
     icon: Users2,
-    title: 'Senior-only engineering',
-    body: 'Every pod is staffed with architects and senior engineers who have shipped systems at enterprise scale. No junior bench, no hand-offs.',
+    title: 'Founder-Led Engineering',
+    body: 'Work closely with our team throughout the development process, from requirements and architecture to delivery and improvements.',
   },
   {
     icon: Globe2,
-    title: 'Global delivery footprint',
-    body: 'Distributed teams across EMEA, APAC, and North America give you overlapping hours with your internal stakeholders.',
+    title: 'Global Collaboration',
+    body: 'Based in India and available to collaborate with businesses and technology teams across different markets and time zones.',
   },
   {
     icon: ShieldCheck,
-    title: 'Security as a default',
-    body: 'Zero-trust access, encrypted data paths, and audit-ready logging are built into the first sprint — never retrofitted.',
+    title: 'Security & Reliability',
+    body: 'We consider security, maintainability and reliability throughout the development lifecycle to create dependable software.',
   },
   {
-    icon: Award,
-    title: 'Outcome-based contracts',
-    body: 'We define success metrics before writing code and tie milestones to measurable business impact, not story points.',
+    icon: Code2,
+    title: 'Flexible Engagement',
+    body: 'Choose project-based development, ongoing support or a long-term technology partnership based on your business needs.',
   },
 ]
 
@@ -33,50 +40,57 @@ const PHILOSOPHIES = [
   {
     id: 'discovery',
     name: '1. Discovery & Strategy',
-    title: 'Aligning business goals with precise architecture',
-    desc: 'We map out your operational bottlenecks, system workflows, and scalability requirements before writing a single line of code.',
+    title: 'Understanding your goals before development',
+    desc: 'We understand your business requirements, workflows, users and technical needs before defining the right solution and development approach.',
   },
   {
     id: 'execution',
     name: '2. Agile Execution',
-    title: 'Rapid iterative sprints with continuous feedback',
-    desc: 'Transparent deployment cycles ensure you have full visibility into progress, metrics, and milestone achievements.',
+    title: 'Build, review and improve continuously',
+    desc: 'We work through clear development milestones, regular communication and iterative feedback so you can stay involved throughout the project.',
   },
   {
     id: 'support',
-    name: '3. Long-term Scaling',
-    title: 'Rigorous optimization and 24/7 reliability',
-    desc: 'Post-launch monitoring, automated updates, and security patching keep your platforms running at peak efficiency.',
+    name: '3. Long-term Support',
+    title: 'Improving your product after launch',
+    desc: 'Our relationship does not have to end at deployment. We can continue supporting, improving and scaling your product as your requirements evolve.',
   },
 ]
 
 const TECH_STACK = [
   'Next.js',
-  'Tailwind CSS',
+  'React',
   'TypeScript',
+  'Python',
+  'Gemini / AI',
   'PHP & MySQL',
-  'React / POS',
+  'PostgreSQL',
 ]
 
 export function AboutSection() {
   const [activeTab, setActiveTab] = useState<string>('discovery')
-  const currentPhilosophy = PHILOSOPHIES.find((p) => p.id === activeTab) || PHILOSOPHIES[0]
+
+  const currentPhilosophy =
+    PHILOSOPHIES.find((p) => p.id === activeTab) || PHILOSOPHIES[0]
 
   return (
-    <section id="about" className="relative scroll-mt-20 py-20 sm:py-24 lg:py-28 bg-card/10 border-y border-border/60">
+    <section
+      id="about"
+      className="relative scroll-mt-20 border-y border-border/60 bg-card/10 py-20 sm:py-24 lg:py-28"
+    >
       <div
         aria-hidden="true"
         className="pointer-events-none absolute bottom-0 left-1/4 -z-10 h-80 w-80 rounded-full bg-primary/10 blur-[130px]"
       />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16 items-start">
+        <div className="grid items-start gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">
           <div>
             <SectionHeading
               align="left"
               eyebrow="About VOLONIS"
-              title="An engineering partner built for the next decade of enterprise software"
-              description="VOLONIS was founded to close the gap between ambitious business strategy and the technology infrastructure required to execute it. We operate as an extension of your team — accountable for architecture, delivery, and results."
+              title="A Technology Partner for Modern Businesses"
+              description="VOLONIS TECHNOLOGIES helps businesses turn ideas into practical digital products. We combine AI, software engineering and automation to build solutions designed around real business requirements."
             />
 
             <motion.dl
@@ -88,12 +102,12 @@ export function AboutSection() {
             >
               {[
                 { v: '2026', l: 'Founded' },
-                { v: '1+', l: 'Core Engineers' },
-                { v: 'Pan-India', l: 'Support & Reach' },
-                { v: '100%', l: 'Client Commitment' },
+                { v: 'India', l: 'Based' },
+                { v: 'AI + Software', l: 'Core Focus' },
+                { v: 'End-to-End', l: 'Development' },
               ].map((s) => (
                 <div key={s.l}>
-                  <dd className="font-display text-2xl font-bold sm:text-3xl text-accent">
+                  <dd className="font-display text-2xl font-bold text-accent sm:text-3xl">
                     {s.v}
                   </dd>
                   <dt className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -104,17 +118,16 @@ export function AboutSection() {
             </motion.dl>
 
             <ul className="mt-8 flex flex-wrap gap-2">
-              {TECH_STACK.map((c) => (
+              {TECH_STACK.map((tech) => (
                 <li
-                  key={c}
+                  key={tech}
                   className="rounded-full border border-accent/25 bg-accent/10 px-3 py-1.5 text-[11px] font-medium text-accent"
                 >
-                  {c}
+                  {tech}
                 </li>
               ))}
             </ul>
 
-            {/* Direct CTA inside About */}
             <div className="mt-8">
               <a
                 href="#contact"
@@ -135,14 +148,16 @@ export function AboutSection() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-70px' }}
                   transition={{ duration: 0.5, delay: i * 0.08 }}
-                  className="glass rounded-2xl p-6 transition-colors hover:border-accent/40 border border-border/60"
+                  className="glass rounded-2xl border border-border/60 p-6 transition-colors hover:border-accent/40"
                 >
                   <span className="inline-flex size-10 items-center justify-center rounded-xl border border-accent/25 bg-accent/10 text-accent">
                     <p.icon className="size-5" aria-hidden="true" />
                   </span>
+
                   <h3 className="font-display mt-4 text-base font-semibold">
                     {p.title}
                   </h3>
+
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                     {p.body}
                   </p>
@@ -150,22 +165,22 @@ export function AboutSection() {
               ))}
             </div>
 
-            {/* Interactive Working Philosophy Box */}
-            <div className="glass rounded-2xl p-6 border border-border/60 mt-2">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="glass mt-2 rounded-2xl border border-border/60 p-6">
+              <div className="mb-4 flex items-center gap-2">
                 <Layers className="size-4 text-accent" />
+
                 <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Our Working Approach
                 </h4>
               </div>
 
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="mb-4 flex flex-wrap gap-2">
                 {PHILOSOPHIES.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={cn(
-                      'rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer border',
+                      'cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
                       activeTab === tab.id
                         ? 'border-accent bg-accent/15 text-accent shadow-sm'
                         : 'border-border bg-background/40 text-muted-foreground hover:text-foreground'
@@ -181,11 +196,12 @@ export function AboutSection() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
-                className="rounded-xl bg-background/50 p-4 border border-border/40"
+                className="rounded-xl border border-border/40 bg-background/50 p-4"
               >
                 <h5 className="font-display text-sm font-bold text-foreground">
                   {currentPhilosophy.title}
                 </h5>
+
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                   {currentPhilosophy.desc}
                 </p>
