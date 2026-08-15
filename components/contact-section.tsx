@@ -30,16 +30,18 @@ export function ContactSection() {
   const [loading, setLoading] = useState(false)
   const [bookingLoading, setBookingLoading] = useState(false)
 
-  // 👉 જો તમારે બુકિંગ વિજેટ ફરી શરૂ કરવું હોય, તો અહીં 'false' ની જગ્યાએ 'true' કરી દેવું.
-  const isStrategyCallActive = false;
+  // Consultation booking is currently disabled.
+  // Change to true when you have a real booking/calendar system connected.
+  const isStrategyCallActive = false
 
-  // ફોર્મ સબમીટ કરીને API માં ડેટા મોકલવાનું ફંક્શન
+  // Submit contact enquiry
   const handleSubmitForm = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
 
     const formElement = e.currentTarget
     const formData = new FormData(formElement)
+
     const name = formData.get('name') as string
     const email = formData.get('email') as string
     const message = formData.get('message') as string
@@ -57,7 +59,9 @@ export function ContactSection() {
           email: email,
           message: message,
           projectDetails: message,
-          productName: message ? message : 'Volonis Project / Inquiry',
+          productName: message
+            ? message
+            : 'VOLONIS Project / Business Enquiry',
           plan: 'Contact Form',
           amount: '0',
           paymentId: 'VOLONIS_' + Date.now(),
@@ -66,10 +70,13 @@ export function ContactSection() {
       })
 
       const contentType = response.headers.get('content-type')
+
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text()
         console.error('Non-JSON Response:', text)
-        throw new Error('સર્વરમાંથી ખોટો રિસ્પોન્સ આવ્યો છે (HTML Error).')
+        throw new Error(
+          'Something went wrong while processing your enquiry.'
+        )
       }
 
       const result = await response.json()
@@ -78,19 +85,26 @@ export function ContactSection() {
         setSent(true)
         formElement.reset()
       } else {
-        alert(result.message || 'ડેટા સેવ કરવામાં ભૂલ છે.')
+        alert(
+          result.message ||
+            'We could not submit your enquiry. Please try again.'
+        )
       }
     } catch (error: any) {
-      console.error('Error:', error)
-      alert(error.message || 'સબમીટ કરવામાં એરર આવી.')
+      console.error('Contact Form Error:', error)
+      alert(
+        error.message ||
+          'Something went wrong while sending your enquiry.'
+      )
     } finally {
       setLoading(false)
     }
   }
 
-  // સ્ટ્રેટેજી કૉલ બુકિંગ ફંક્શન (ડેટાબેઝમાં સેવ કરવા માટે)
+  // Consultation booking
   const handleBookCall = async () => {
     if (!slot) return
+
     setBookingLoading(true)
 
     try {
@@ -100,19 +114,22 @@ export function ContactSection() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          customerName: 'Strategy Call Client',
-          email: 'client.strategy@volonis.com',
-          productName: `Strategy Call - ${SLOTS[activeDay].day} ${SLOTS[activeDay].date} August at ${slot} CET`,
-          plan: 'Strategy Call',
+          customerName: 'Consultation Request',
+          email: '',
+          productName: `Free Consultation - ${SLOTS[activeDay].day} ${SLOTS[activeDay].date} August at ${slot}`,
+          plan: 'Free Consultation',
           amount: '0',
-          paymentId: 'CALL_' + Date.now(),
+          paymentId: 'CONSULTATION_' + Date.now(),
           durationDays: 1,
         }),
       })
 
       const contentType = response.headers.get('content-type')
+
       if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('સર્વર એરર આવી રહી છે.')
+        throw new Error(
+          'Something went wrong while processing your consultation request.'
+        )
       }
 
       const result = await response.json()
@@ -120,11 +137,17 @@ export function ContactSection() {
       if (response.ok && result.success) {
         setBooked(true)
       } else {
-        alert(result.message || 'બુકિંગ સેવ કરવામાં એરર આવી.')
+        alert(
+          result.message ||
+            'We could not confirm your consultation request.'
+        )
       }
     } catch (error: any) {
-      console.error('Booking Error:', error)
-      alert(error.message || 'બુકિંગ ફેલ થયું.')
+      console.error('Consultation Booking Error:', error)
+      alert(
+        error.message ||
+          'Something went wrong while booking your consultation.'
+      )
     } finally {
       setBookingLoading(false)
     }
@@ -139,6 +162,7 @@ export function ContactSection() {
         aria-hidden="true"
         className="pointer-events-none absolute top-0 left-1/2 -z-10 h-96 w-[40rem] -translate-x-1/2 rounded-full bg-accent/10 blur-[150px]"
       />
+
       <div
         aria-hidden="true"
         className="pointer-events-none absolute bottom-10 left-10 -z-10 h-72 w-72 rounded-full bg-primary/10 blur-[140px]"
@@ -147,12 +171,13 @@ export function ContactSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <SectionHeading
           eyebrow="Get Started"
-          title="Let's scope your next platform"
-          description="Send a brief or book a 15-minute strategy call with a solutions architect — no sales script, just engineering."
+          title="Let's Build Your Next Digital Solution"
+          description="Tell us what you're building, what you need, or where your current system needs improvement. Our team will review your enquiry and get back to you within one business day."
         />
 
         <div className="mt-16 grid gap-6 lg:grid-cols-2">
-          {/* Contact form */}
+
+          {/* Contact Form */}
           <motion.div
             initial={{ opacity: 0, y: 32 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -163,12 +188,15 @@ export function ContactSection() {
             <div>
               <div className="flex items-center justify-between">
                 <h3 className="font-display text-xl font-bold text-foreground sm:text-2xl">
-                  Send us a brief
+                  Tell Us About Your Project
                 </h3>
+
                 <Sparkles className="size-4 text-accent/40" />
               </div>
+
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                We reply to every enquiry within one business day.
+                Share your requirements, goals, and timeline. We review every
+                enquiry and respond within one business day.
               </p>
 
               {sent ? (
@@ -179,22 +207,29 @@ export function ContactSection() {
                   <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-accent/20 text-accent shadow-[0_0_20px_rgba(0,212,255,0.3)]">
                     <Check className="size-7" aria-hidden="true" />
                   </span>
+
                   <p className="font-display mt-4 text-lg font-bold text-foreground">
-                    Message sent
+                    Enquiry Sent Successfully
                   </p>
+
                   <p className="mt-1.5 text-sm text-muted-foreground">
-                    Thanks — a solutions architect will be in touch shortly.
+                    Thank you for reaching out. Our team will review your
+                    enquiry and get back to you shortly.
                   </p>
+
                   <button
                     type="button"
                     onClick={() => setSent(false)}
                     className="mt-6 text-sm font-semibold text-accent underline-offset-4 hover:underline cursor-pointer"
                   >
-                    Send another message
+                    Send another enquiry
                   </button>
                 </div>
               ) : (
-                <form className="mt-8 grid gap-5" onSubmit={handleSubmitForm}>
+                <form
+                  className="mt-8 grid gap-5"
+                  onSubmit={handleSubmitForm}
+                >
                   <div className="grid gap-2">
                     <label
                       htmlFor="name"
@@ -202,13 +237,14 @@ export function ContactSection() {
                     >
                       Full name
                     </label>
+
                     <input
                       id="name"
                       name="name"
                       type="text"
                       required
                       autoComplete="name"
-                      placeholder="Jordan Ellis"
+                      placeholder="Your full name"
                       className="rounded-2xl border border-border/80 bg-background/50 px-4.5 py-3.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-accent/60 focus:ring-2 focus:ring-accent/25 focus:outline-none transition-all"
                     />
                   </div>
@@ -220,13 +256,14 @@ export function ContactSection() {
                     >
                       Work email
                     </label>
+
                     <input
                       id="email"
                       name="email"
                       type="email"
                       required
                       autoComplete="email"
-                      placeholder="jordan@company.com"
+                      placeholder="you@company.com"
                       className="rounded-2xl border border-border/80 bg-background/50 px-4.5 py-3.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-accent/60 focus:ring-2 focus:ring-accent/25 focus:outline-none transition-all"
                     />
                   </div>
@@ -238,12 +275,13 @@ export function ContactSection() {
                     >
                       Project details
                     </label>
+
                     <textarea
                       id="message"
                       name="message"
                       rows={4}
                       required
-                      placeholder="Tell us about the systems, timelines, and outcomes you have in mind."
+                      placeholder="Tell us about your project, requirements, timeline, and goals."
                       className="resize-none rounded-2xl border border-border/80 bg-background/50 px-4.5 py-3.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/50 focus:border-accent/60 focus:ring-2 focus:ring-accent/25 focus:outline-none transition-all"
                     />
                   </div>
@@ -254,7 +292,10 @@ export function ContactSection() {
                     className="mt-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary to-accent px-6 py-4 text-sm font-semibold text-primary-foreground shadow-[0_0_28px_rgba(21,101,255,0.4)] transition-all hover:shadow-[0_0_44px_rgba(0,212,255,0.5)] cursor-pointer disabled:opacity-50"
                   >
                     <Send className="size-4" aria-hidden="true" />
-                    <span>{loading ? 'Sending...' : 'Send message'}</span>
+
+                    <span>
+                      {loading ? 'Sending...' : 'Send Enquiry'}
+                    </span>
                   </button>
                 </form>
               )}
@@ -262,17 +303,26 @@ export function ContactSection() {
 
             <ul className="mt-8 grid gap-3.5 border-t border-border/50 pt-6">
               <li className="flex items-center gap-3 text-sm text-muted-foreground font-medium">
-                <Mail className="size-4 shrink-0 text-accent" aria-hidden="true" />
-                <span>hello@volonis.com</span>
+                <Mail
+                  className="size-4 shrink-0 text-accent"
+                  aria-hidden="true"
+                />
+
+                <span>contact.volonis@gmail.com</span>
               </li>
+
               <li className="flex items-center gap-3 text-sm text-muted-foreground font-medium">
-                <MapPin className="size-4 shrink-0 text-accent" aria-hidden="true" />
-                <span>I</span>
+                <MapPin
+                  className="size-4 shrink-0 text-accent"
+                  aria-hidden="true"
+                />
+
+                <span>India · Serving Clients Worldwide</span>
               </li>
             </ul>
           </motion.div>
 
-          {/* Scheduling (Paused or Active Condition) */}
+          {/* Consultation Section */}
           <motion.div
             initial={{ opacity: 0, y: 32 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -284,22 +334,29 @@ export function ContactSection() {
               <>
                 <div>
                   <span className="inline-flex w-fit items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3.5 py-1.5 text-xs font-semibold text-accent shadow-sm">
-                    <Video className="size-3.5" aria-hidden="true" />
+                    <Video
+                      className="size-3.5"
+                      aria-hidden="true"
+                    />
+
                     Google Meet · 15 minutes
                   </span>
-                  
+
                   <h3 className="font-display mt-5 text-xl font-bold text-foreground text-balance sm:text-2xl">
-                    Book a 15-min Strategy Call
+                    Book a Free 15-Minute Consultation
                   </h3>
+
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    Pick a slot that works for you. You will receive a calendar invite
-                    with a shared agenda instantly.
+                    Discuss your idea, project requirements, or technology
+                    needs with our team. No obligation — just a focused
+                    conversation about your next steps.
                   </p>
 
                   <div className="mt-7">
                     <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                       August 2026
                     </p>
+
                     <div
                       role="tablist"
                       aria-label="Select a day"
@@ -325,6 +382,7 @@ export function ContactSection() {
                           <span className="block text-xs font-medium">
                             {s.day}
                           </span>
+
                           <span className="font-display block text-lg font-bold mt-0.5">
                             {s.date}
                           </span>
@@ -335,9 +393,14 @@ export function ContactSection() {
 
                   <div className="mt-6">
                     <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                      <Clock className="size-3.5 text-accent" aria-hidden="true" />
-                      Available times (CET)
+                      <Clock
+                        className="size-3.5 text-accent"
+                        aria-hidden="true"
+                      />
+
+                      Available times
                     </p>
+
                     <div className="mt-3 flex flex-wrap gap-2.5">
                       {SLOTS[activeDay].times.map((t) => (
                         <button
@@ -372,12 +435,15 @@ export function ContactSection() {
                         className="mx-auto size-6 text-accent"
                         aria-hidden="true"
                       />
+
                       <p className="font-display mt-3 text-sm font-bold text-foreground">
-                        Call confirmed for {SLOTS[activeDay].day} {SLOTS[activeDay].date}{' '}
-                        at {slot} CET
+                        Consultation requested for{' '}
+                        {SLOTS[activeDay].day}{' '}
+                        {SLOTS[activeDay].date} at {slot}
                       </p>
+
                       <p className="mt-1.5 text-xs text-muted-foreground">
-                        A calendar invite is on its way to your inbox.
+                        Our team will follow up with the next steps.
                       </p>
                     </div>
                   ) : (
@@ -387,23 +453,40 @@ export function ContactSection() {
                       onClick={handleBookCall}
                       className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-border/80 bg-background/60 px-6 py-4 text-sm font-semibold transition-all hover:border-accent/50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer shadow-sm"
                     >
-                      <CalendarCheck className="size-4 text-accent" aria-hidden="true" />
-                      <span>{bookingLoading ? 'Confirming...' : slot ? `Confirm ${slot} CET` : 'Select a time to continue'}</span>
+                      <CalendarCheck
+                        className="size-4 text-accent"
+                        aria-hidden="true"
+                      />
+
+                      <span>
+                        {bookingLoading
+                          ? 'Requesting...'
+                          : slot
+                            ? `Request ${slot} Consultation`
+                            : 'Select a time to continue'}
+                      </span>
                     </button>
                   )}
                 </div>
               </>
             ) : (
-              /* Paused Message Display (English) */
+              /* Consultation Request Message */
               <div className="flex flex-col items-center justify-center h-full text-center py-12">
                 <span className="inline-flex items-center justify-center size-16 rounded-3xl border border-accent/30 bg-accent/10 text-accent mb-6 shadow-sm">
-                  <Video className="size-7" aria-hidden="true" />
+                  <Video
+                    className="size-7"
+                    aria-hidden="true"
+                  />
                 </span>
+
                 <h3 className="font-display text-xl font-bold text-foreground sm:text-2xl">
-                  Strategy Calls Paused
+                  Let’s Discuss Your Project
                 </h3>
+
                 <p className="mt-3 text-sm leading-relaxed text-muted-foreground max-w-sm">
-                  Strategy call bookings are temporarily paused for a few days. You can reach out using the contact form on the left!
+                  Have a project idea, software requirement, AI initiative,
+                  or partnership opportunity? Send us your details and our
+                  team will get in touch to discuss how VOLONIS can help.
                 </p>
               </div>
             )}
