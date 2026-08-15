@@ -6,9 +6,9 @@ import { NetworkVisual } from '@/components/network-visual'
 
 const STATS = [
   { value: 'AI-First', label: 'Engineering Approach' },
-  { value: 'Cloud-Native', label: 'Modern Architecture' },
+  { value: 'Cloud-Ready', label: 'Modern Architecture' },
   { value: 'End-to-End', label: 'Product Development' },
-  { value: '24/7', label: 'Digital Support' },
+  { value: 'Founder-Led', label: 'Direct Communication' },
 ]
 
 export function HeroSection() {
@@ -38,7 +38,7 @@ export function HeroSection() {
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <span className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3.5 py-1.5 text-xs font-medium tracking-wide text-accent sm:text-sm">
                 <Sparkles className="size-3.5" aria-hidden="true" />
-                Empowering Enterprises with Next-Gen AI
+                AI • Software • Digital Solutions
               </span>
               <span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/50 px-3 py-1.5 text-xs font-medium text-muted-foreground">
                 <ShieldCheck className="size-3.5 text-accent" />
@@ -47,30 +47,27 @@ export function HeroSection() {
             </div>
 
             <h1 className="font-display mt-4 text-4xl leading-[1.08] font-bold tracking-tight text-balance sm:text-5xl lg:text-[3.65rem]">
-              Building Scalable{' '}
+              Building{' '}
               <span className="bg-gradient-to-r from-primary via-accent to-accent bg-clip-text text-transparent">
-                AI &amp; Software
+                AI &amp; Software Solutions
               </span>{' '}
-              Infrastructure for the Global Future
+              for Ambitious Businesses
             </h1>
 
             <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              We engineer custom IT solutions, intelligent automation, and
-              production-grade SaaS platforms for enterprises operating at
-              scale. From architecture to deployment, VOLONIS delivers systems
-              built to compound value for years.
+              VOLONIS TECHNOLOGIES helps businesses turn ideas into reliable digital products. We build AI solutions, custom software, SaaS platforms, and intelligent automation systems — from initial concept to deployment.
             </p>
 
             {/* Feature Highlights Pills */}
             <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <CheckCircle className="size-4 text-accent" /> Zero-Trust Security
+                <CheckCircle className="size-4 text-accent" /> ✓ Direct Communication
               </span>
               <span className="flex items-center gap-1.5">
-                <CheckCircle className="size-4 text-accent" /> 24/7 Dedicated Support
+                <CheckCircle className="size-4 text-accent" /> ✓ Modern Technology
               </span>
               <span className="flex items-center gap-1.5">
-                <CheckCircle className="size-4 text-accent" /> Cloud Native
+                <CheckCircle className="size-4 text-accent" /> ✓ Flexible Engagement
               </span>
             </div>
 
@@ -80,7 +77,7 @@ export function HeroSection() {
                 href="#services"
                 className="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-[0_0_32px_rgba(21,101,255,0.45)] transition-all hover:shadow-[0_0_48px_rgba(0,212,255,0.55)] focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none cursor-pointer"
               >
-                Explore Solutions
+                Start Your Project
                 <ArrowRight
                   className="size-4 transition-transform group-hover:translate-x-1"
                   aria-hidden="true"
